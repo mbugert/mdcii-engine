@@ -129,7 +129,7 @@ func (c *Cod) Parse() error {
 		}
 		// example: '@Pos:       +0, +42'
 		if matches := regexSearch(`@(\w+):.*(,)`, line); len(matches) > 0 {
-			name := matches[0]
+			// name := matches[0]
 			offsets := []int{}
 			if result := regexSearch(`:\s*(.*)`, line); len(result) > 0 {
 				tokens := strings.Split(result[0], ",")
@@ -148,16 +148,17 @@ func (c *Cod) Parse() error {
 					}
 				}
 			}
-			index := c.existsInCurrentObject(name)
+			// index := c.existsInCurrentObject(name)
 		}
 	}
+	return nil
 }
 
 func (c *Cod) existsInCurrentObject(variableName string) int {
 	if c.Intern.currentObjectIndex != -1 {
-		for k, v := range c.Intern.objectStack {
+		// for k, v := range c.Intern.objectStack {
 
-		}
+		// }
 	}
 	return -1
 }
