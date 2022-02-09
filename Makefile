@@ -11,7 +11,10 @@ bshdump:
 	GOOS=linux GOARCH=${GO_ARCH} go build -o ${BIN_DIR}/bshdump cmd/bshdump/main.go
 	GOOS=windows GOARCH=${GO_ARCH} go build -o ${BIN_DIR}/bshdump.exe cmd/bshdump/main.go
 
-# proto-cod:
+proto-cod:
+	 go mod download google.golang.org/protobuf
+	 go install google.golang.org/protobuf/cmd/protoc-gen-go
+	protoc -I=pkg/cod --go_out=pkg/cod pkg/cod/cod.proto
 # 	cd ../ && ./dobi.sh generate-client-sources
 
 # build:
