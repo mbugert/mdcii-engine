@@ -19,6 +19,7 @@ type CodIntern struct {
 	variableNumbersArray map[string][]int
 	constants            Variables
 	currentObjectIndex   int
+	currentObject        *Object
 	objectStack          stack.Stack
 }
 
@@ -110,6 +111,10 @@ func countFrontSpaces(s string) int {
 }
 
 func (c *Cod) Parse() error {
+
+	// variableNumbers := map[string]int32{}
+	variableNumbersArray := map[string][]int32{}
+
 	for _, line := range c.Lines {
 		spaces := countFrontSpaces(line)
 		fmt.Println(spaces)
@@ -127,38 +132,113 @@ func (c *Cod) Parse() error {
 			})
 			continue
 		}
-		// example: '@Pos:       +0, +42'
-		if matches := regexSearch(`@(\w+):.*(,)`, line); len(matches) > 0 {
-			// name := matches[0]
-			offsets := []int{}
-			if result := regexSearch(`:\s*(.*)`, line); len(result) > 0 {
-				tokens := strings.Split(result[0], ",")
-				for _, e := range tokens {
-					e = strings.TrimSpace(e)
-					if number := regexSearch(`([+|-]?)(\d+)`, e); len(number) > 0 {
-						offset, err := strconv.Atoi(number[1])
+		{
+			// relative assignment, examples:
+			// example: '@Pos:       +0, +42'
+			if matches := regexSearch(`@(\w+):.*(,)`, line); len(matches) > 0 {
+				name := matches[0]
+				offsets := []int32{}
+				if result := regexSearch(`:\s*(.*)`, line); len(result) > 0 {
+					tokens := strings.Split(result[0], ",")
+					for _, e := range tokens {
+						e = strings.TrimSpace(e)
+						if number := regexSearch(`([+|-]?)(\d+)`, e); len(number) > 0 {
+							offset, err := strconv.Atoi(number[1])
+							if err != nil {
+								return err
+							}
+							if number[2] == "-" {
+								offset *= -1
+							}
+							offsets = append(offsets, int32(offset))
+
+						}
+					}
+				}
+				index := c.existsInCurrentObject(name)
+				currentArrayValues := []int32{}
+				for i := 0; i < len(offsets); i++ {
+					var currentValue int32
+					if index != -1 {
+						currentValue = variableNumbersArray[c.Intern.currentObject.Name][i]
+						currentValue = calculateOperation(currentValue, "+", offsets[i])
+						c.Intern.currentObject.Variables.Variable[i].Value = &Variable_ValueInt{
+							ValueInt: currentValue,
+						}
+
+					} else {
+						currentValue = calculateOperation(variableNumbersArray[name][i], "+", offsets[i])
+						variable, err := c.createOrReuseVariable(name)
 						if err != nil {
 							return err
 						}
-						if number[2] == "-" {
-							offset *= -1
+						if variable != nil {
+							variable.Name = name
+							variable.Value = &Variable_ValueInt{
+								ValueInt: currentValue,
+							}
 						}
-						offsets = append(offsets, offset)
-
 					}
+					currentArrayValues = append(currentArrayValues, currentValue)
 				}
+				variableNumbersArray[name] = currentArrayValues
 			}
-			// index := c.existsInCurrentObject(name)
+		}
+		return nil
+	}
+	return nil
+}
+
+func (c *Cod) createOrReuseVariable(name string) (*Variable, error) {
+	if c.Intern.currentObject != nil {
+		optionalVar := c.getVariableFromObject(c.Intern.currentObject, name)
+		if optionalVar != nil {
+			return optionalVar, nil
+		}
+		variable := Variable{}
+		c.Intern.currentObject.Variables.Variable = append(c.Intern.currentObject.Variables.Variable, &variable)
+		return &variable, nil
+	}
+	return nil, fmt.Errorf("no current object")
+}
+
+func (c *Cod) getVariableFromConstants(key string) Variable {
+	for i := 0; i < len(c.Intern.constants.Variable); i++ {
+		if c.Intern.constants.Variable[i].Name == key {
+			return *c.Intern.constants.Variable[i]
+		}
+	}
+	return Variable{}
+}
+
+func (c *Cod) getVariableFromObject(obj *Object, name string) *Variable {
+	for i := 0; i < len(obj.Variables.Variable); i++ {
+		if obj.Variables.Variable[i].Name == name {
+			return obj.Variables.Variable[i]
 		}
 	}
 	return nil
 }
 
+func calculateOperation(oldValue int32, operation string, op int32) int32 {
+	currentValue := oldValue
+	if operation == "+" {
+		currentValue += op
+	} else if operation == "-" {
+		currentValue -= op
+	} else {
+		currentValue = op
+	}
+	return currentValue
+}
+
 func (c *Cod) existsInCurrentObject(variableName string) int {
 	if c.Intern.currentObjectIndex != -1 {
-		// for k, v := range c.Intern.objectStack {
-
-		// }
+		for index, v := range c.Intern.currentObject.Variables.Variable {
+			if v.Name == variableName {
+				return index
+			}
+		}
 	}
 	return -1
 }
