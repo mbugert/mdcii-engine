@@ -1,31 +1,27 @@
-
 NAME = mdcii
 BIN_DIR ?= ./bin
 VERSION ?= $(shell git describe --match=NeVeRmAtCh --always --abbrev=40 --dirty)
 GO_LDFLAGS = -tags 'netgo osusergo static_build'
 GO_ARCH = amd64
 
-all: check test build
+all: proto-cod build
 
-bshdump:
+build: bshdump
+
+bshdump: test
 	GOOS=linux GOARCH=${GO_ARCH} go build -o ${BIN_DIR}/bshdump cmd/bshdump/main.go
-	GOOS=windows GOARCH=${GO_ARCH} go build -o ${BIN_DIR}/bshdump.exe cmd/bshdump/main.go
 
 proto-cod:
-	 go mod download google.golang.org/protobuf
-	 go install google.golang.org/protobuf/cmd/protoc-gen-go
-	protoc -I=pkg/cod --go_out=pkg/cod pkg/cod/cod.proto
-# 	cd ../ && ./dobi.sh generate-client-sources
-
-# build:
-# 	GOOS=linux GOARCH=${GO_ARCH} go build $(GO_LDFLAGS) -o ${BIN_DIR}/${NAME} main.go
-# 	GOOS=windows GOARCH=${GO_ARCH} go build $(GO_LDFLAGS) -o ${BIN_DIR}/${NAME}.exe main.go
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	protoc --proto_path=proto --go_out=pkg/cod proto/cod.proto
+	@mv pkg/cod/github.com/siredmar/mdcii-engine/pkg/cod/cod.pb.go pkg/cod
+	@rm -r pkg/cod/github.com/
 
 test:
 	go test ./...
 
 clean:
-	rm -rf ${BIN_DIR}/bshdump ${BIN_DIR}/bshdump.exe
+	rm -rf ${BIN_DIR}/bshdump
 
 .PHONY: check test clean
 
