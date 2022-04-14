@@ -1,9 +1,9 @@
-package stack
+package cod
 
 // Stack is
-type Stack []interface{}
+type Stack []Object
 
-func New() *Stack {
+func NewStack() *Stack {
 	return &Stack{}
 }
 
@@ -13,14 +13,14 @@ func (s *Stack) IsEmpty() bool {
 }
 
 // Push a new value onto the stack
-func (s *Stack) Push(e interface{}) {
+func (s *Stack) Push(e Object) {
 	*s = append(*s, e) // Simply append the new value to the end of the stack
 }
 
 // Remove and return top element of stack. Return false if stack is empty.
-func (s *Stack) Pop() (interface{}, bool) {
+func (s *Stack) Pop() (Object, bool) {
 	if s.IsEmpty() {
-		return "", false
+		return Object{}, false
 	} else {
 		index := len(*s) - 1   // Get the index of the top most element.
 		element := (*s)[index] // Index into the slice and obtain the element.

@@ -13,7 +13,19 @@ func regexSearch(regex string, input string) []string {
 	}
 
 	matches := re.FindStringSubmatch(input)
-	return matches[1:]
+	if len(matches) > 0 {
+		return matches[1:]
+	}
+	return nil
+}
+
+func regexMatch(regex string, input string) bool {
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return false
+	}
+
+	return re.MatchString(input)
 }
 
 // splitByDelimiter splits a string by a given delimiter and returns a slice of strings

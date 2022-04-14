@@ -140,3 +140,77 @@ func TestGetValueConstantExists(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(&Variable_ValueInt{ValueInt: 95}, v.Value)
 }
+
+func TestParseRelativeAssignment(t *testing.T) {
+	assert := assert.New(t)
+	objectStack := NewStack()
+	objectStack.Push(Object{
+		Name: "FOO",
+		Variables: &Variables{
+			Variable: []*Variable{
+				{Value: &Variable_ValueInt{ValueInt: 10}},
+				{Value: &Variable_ValueInt{ValueInt: 20}},
+			},
+		},
+	},
+	)
+
+	cod := Cod{
+		Lines:   []string{"@A: +10", "@FOO: +2,+5"},
+		Objects: Objects{},
+		Intern: CodIntern{
+			variableNumbers:      map[string]int{"A": 10},
+			variableNumbersArray: map[string][]int{"FOO": {100, 200}},
+			constants:            Variables{},
+			currentObjectIndex:   -1,
+			currentObject:        &Object{},
+			objectStack:          objectStack,
+		},
+	}
+
+	err := cod.Parse()
+	assert.Nil(err)
+	cod.DumpVariables()
+	cod.DumpArrayVariables()
+
+}
+
+func TestParseConstantAssignment(t *testing.T) {
+	assert := assert.New(t)
+	objectStack := NewStack()
+
+	cod := Cod{
+		Lines:   []string{"FOO = BAR", "BAR=FOO", "A = 5000", "B = VARIABLE+10", "C = A + 10", "D = 3.14"},
+		Objects: Objects{},
+		Intern: CodIntern{
+			variableNumbers:      map[string]int{},
+			variableNumbersArray: map[string][]int{},
+			constants:            Variables{},
+			currentObjectIndex:   -1,
+			currentObject:        &Object{},
+			objectStack:          objectStack,
+		},
+	}
+
+	err := cod.Parse()
+	assert.Nil(err)
+	assert.Equal(6, len(cod.Intern.constants.Variable))
+	assert.Equal("FOO", cod.Intern.constants.Variable[0].Name)
+	assert.Equal("BAR", cod.Intern.constants.Variable[0].GetValueString())
+
+	assert.Equal("BAR", cod.Intern.constants.Variable[1].Name)
+	assert.Equal("BAR", cod.Intern.constants.Variable[1].GetValueString())
+
+	assert.Equal("A", cod.Intern.constants.Variable[2].Name)
+	assert.Equal(int32(5000), cod.Intern.constants.Variable[2].GetValueInt())
+
+	assert.Equal("B", cod.Intern.constants.Variable[3].Name)
+	assert.Equal(int32(10), cod.Intern.constants.Variable[3].GetValueInt())
+
+	assert.Equal("C", cod.Intern.constants.Variable[4].Name)
+	assert.Equal(int32(5010), cod.Intern.constants.Variable[4].GetValueInt())
+
+	assert.Equal("D", cod.Intern.constants.Variable[5].Name)
+	assert.Equal(float32(3.14), cod.Intern.constants.Variable[5].GetValueFloat())
+
+}
